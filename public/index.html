@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제품코드 관리 — 일룸</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Sans:wght@400;500&display=swap');
+
+:root {
+  --green-50:  #f4f9f0;
+  --green-100: #e6f2de;
+  --green-200: #c9e4b8;
+  --green-400: #7aba5a;
+  --green-500: #5a9e3c;
+  --green-600: #3e7a28;
+  --green-700: #2c5a1c;
+  --bark:      #4a5240;
+  --soil:      #6b6b5a;
+  --mist:      #f0f4ec;
+  --fog:       #e8eee2;
+  --white:     #ffffff;
+  --shadow-sm: 0 1px 4px rgba(60,90,40,.07);
+  --shadow-md: 0 4px 16px rgba(60,90,40,.10);
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--mist);
+  color: var(--bark);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── NAV ── */
+nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--fog);
+  padding: 0 32px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--green-600);
+  letter-spacing: -.3px;
+  text-decoration: none;
+}
+.logo svg { width: 24px; height: 24px; }
+.nav-links {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  align-items: center;
+}
+.nav-links button {
+  background: none;
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--soil);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.nav-links button:hover, .nav-links button.active {
+  background: var(--green-100);
+  color: var(--green-600);
+}
+.nav-links button.active { font-weight: 500; }
+
+/* ── HERO ── */
+.hero {
+  background: var(--white);
+  border-bottom: 1px solid var(--fog);
+  padding: 40px 32px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60'%3E%3Cellipse cx='200' cy='80' rx='300' ry='70' fill='%23e6f2de' opacity='.5'/%3E%3Cellipse cx='700' cy='85' rx='500' ry='65' fill='%23c9e4b8' opacity='.3'/%3E%3Cellipse cx='1100' cy='80' rx='250' ry='60' fill='%23e6f2de' opacity='.5'/%3E%3C/svg%3E") bottom/cover no-repeat;
+}
+.hero h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--green-600);
+  margin-bottom: 6px;
+  letter-spacing: -.5px;
+}
+.hero p {
+  font-size: 13px;
+  color: var(--soil);
+  margin-bottom: 24px;
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1.5px solid var(--green-200);
+  border-radius: 50px;
+  padding: 0 8px 0 20px;
+  max-width: 620px;
+  margin: 0 auto;
+  gap: 8px;
+  box-shadow: var(--shadow-md);
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-bar:focus-within {
+  border-color: var(--green-400);
+  box-shadow: 0 0 0 3px rgba(90,158,60,.12), var(--shadow-md);
+}
+.search-bar svg { color: var(--green-400); flex-shrink: 0; width:18px;height:18px; }
+#searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--bark);
+  background: transparent;
+  padding: 13px 0;
+}
+#searchInput::placeholder { color: #aab8a0; }
+.search-btn {
+  background: var(--green-400);
+  border: none;
+  border-radius: 50px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.search-btn:hover { background: var(--green-500); }
+.search-btn svg { width:16px;height:16px;color:white; }
+
+/* ── SEARCH RESULTS ── */
+#resultPanel {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 16px 32px 0;
+  display: none;
+}
+#resultPanel.show { display: block; }
+.result-meta {
+  font-size: 12px;
+  color: var(--soil);
+  margin-bottom: 8px;
+}
+.result-list {
+  background: var(--white);
+  border: 1px solid var(--fog);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.result-row {
+  display: grid;
+  grid-template-columns: 160px 72px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--fog);
+  transition: background .1s;
+}
+.result-row:last-child { border-bottom: none; }
+.result-row:hover { background: var(--green-50); }
+.r-code { font-family: 'DM Sans', monospace; font-size: 12px; font-weight: 500; color: var(--green-600); }
+.r-proc { background: var(--fog); color: var(--soil); font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.r-name { font-size: 13px; color: var(--bark); }
+.copyable { cursor: pointer; border-radius: 4px; padding: 1px 3px; margin: -1px -3px; transition: background .15s, color .15s; }
+.copyable:hover { background: var(--green-100); }
+.copyable.copied { background: var(--green-400) !important; color: #fff !important; }
+.r-note { font-size: 11px; color: var(--green-500); background: var(--green-50); border: 1px solid var(--green-200); padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+
+/* ── MAIN LAYOUT ── */
+.main-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 32px 60px;
+  width: 100%;
+  flex: 1;
+}
+.section-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--white);
+  border: 1px solid var(--fog);
+  border-radius: var(--r-lg);
+  padding: 4px;
+  width: fit-content;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 7px 18px;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--soil);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+  font-weight: 400;
+}
+.tab-btn.active {
+  background: var(--green-100);
+  color: var(--green-600);
+  font-weight: 500;
+}
+
+/* ── PANELS ── */
+.panel { display: none; }
+.panel.show { display: block; }
+
+/* ── ADD FORM ── */
+.form-card {
+  background: var(--white);
+  border: 1px solid var(--fog);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.form-card h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--green-700);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.form-card h3::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: var(--green-400);
+  border-radius: 2px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 160px 110px 1fr 180px auto;
+  gap: 10px;
+  align-items: end;
+}
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--soil);
+  margin-bottom: 5px;
+  letter-spacing: .02em;
+}
+.form-group input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--fog);
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--bark);
+  background: var(--mist);
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+.form-group input:focus {
+  border-color: var(--green-400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(90,158,60,.10);
+}
+.btn {
+  padding: 9px 18px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--green-400);
+  color: white;
+  border-color: var(--green-400);
+}
+.btn-primary:hover { background: var(--green-500); border-color: var(--green-500); }
+.btn-ghost {
+  background: var(--white);
+  color: var(--soil);
+  border-color: var(--fog);
+}
+.btn-ghost:hover { background: var(--mist); }
+.btn-danger {
+  background: var(--white);
+  color: #b94a4a;
+  border-color: #f0c9c9;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.btn-danger:hover { background: #fdf0f0; }
+.toast {
+  display: none;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  margin-top: 10px;
+}
+.toast.ok { display: block; background: var(--green-100); color: var(--green-700); }
+.toast.err { display: block; background: #fdf0f0; color: #a33; }
+
+/* ── TABLE ── */
+.table-card {
+  background: var(--white);
+  border: 1px solid var(--fog);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--fog);
+}
+.table-header h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--green-700);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-header h3::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 16px;
+  background: var(--green-400);
+  border-radius: 2px;
+}
+.total-badge {
+  font-size: 11px;
+  background: var(--green-50);
+  color: var(--green-600);
+  border: 1px solid var(--green-200);
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--soil);
+  background: var(--green-50);
+  border-bottom: 1px solid var(--fog);
+  letter-spacing: .03em;
+}
+tbody td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--fog);
+  color: var(--bark);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--green-50); }
+.td-code { font-family: 'DM Sans', monospace; font-weight: 500; color: var(--green-600); font-size: 12px; }
+.td-proc { background: var(--fog); color: var(--soil); font-size: 10px; padding: 2px 7px; border-radius: 99px; display: inline-block; }
+.td-note { font-size: 11px; color: var(--green-500); background: var(--green-50); border: 1px solid var(--green-200); padding: 1px 6px; border-radius: 4px; }
+
+/* ── IO PANEL ── */
+.io-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.io-card {
+  background: var(--white);
+  border: 1px solid var(--fog);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.io-card h3 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-700);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.io-card h3::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 14px;
+  background: var(--green-400);
+  border-radius: 2px;
+}
+textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--fog);
+  border-radius: var(--r-sm);
+  font-family: 'DM Sans', monospace;
+  font-size: 11px;
+  color: var(--bark);
+  background: var(--mist);
+  resize: vertical;
+  outline: none;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+textarea:focus {
+  border-color: var(--green-400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(90,158,60,.10);
+}
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.danger-zone {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #fdf8f0;
+  border: 1px solid #f0ddb8;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.danger-zone p { font-size: 12px; color: #7a5a20; }
+.btn-warn {
+  background: var(--white);
+  color: #a06020;
+  border: 1px solid #e0c080;
+  padding: 7px 14px;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-warn:hover { background: #fdf0e0; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--white);
+  border-top: 1px solid var(--fog);
+  padding: 32px;
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 32px;
+  align-items: start;
+}
+.footer-col h4 {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bark);
+  margin-bottom: 10px;
+  letter-spacing: .04em;
+}
+.footer-col p, .footer-col a {
+  font-size: 12px;
+  color: var(--soil);
+  display: block;
+  margin-bottom: 6px;
+  text-decoration: none;
+}
+.footer-col a:hover { color: var(--green-500); }
+.footer-brand {
+  background: var(--green-50);
+  border: 1px solid var(--green-200);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.footer-brand svg { width: 28px; height: 28px; flex-shrink: 0; margin-top: 2px; }
+.footer-brand p { font-size: 12px; color: var(--green-700); line-height: 1.6; }
+.footer-copy {
+  text-align: center;
+  font-size: 11px;
+  color: #aab8a0;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--fog);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── LEAF DECORATION ── */
+.leaf-deco {
+  position: absolute;
+  pointer-events: none;
+  opacity: .25;
+}
+.hero { position: relative; }
+
+/* ── LOGIN ── */
+#loginOverlay { display:none; position:fixed; inset:0; z-index:1000; background:rgba(240,244,236,.96); align-items:center; justify-content:center; padding:16px; }
+#loginOverlay.show { display:flex; }
+.login-card { background:var(--white); border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:28px; width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px; }
+.login-card h3 { color:var(--green-700); font-size:18px; }
+.login-card p { font-size:13px; color:var(--soil); }
+.login-card input { padding:10px 12px; border:1px solid var(--fog); border-radius:var(--r-sm); font-size:14px; font-family:inherit; }
+.login-card input:focus { outline:2px solid var(--green-400); border-color:transparent; }
+#loginMsg { font-size:12px; color:#a33; min-height:16px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2C6 2 3 8 5 14c1.5 4 5 6 7 6s5.5-2 7-6c2-6-1-12-7-12z"/>
+      <path d="M12 8v8M9 11l3-3 3 3"/>
+    </svg>
+    제품코드 관리
+  </a>
+  <div class="nav-links">
+    <button class="active" onclick="showSection('search')">통합검색</button>
+    <button onclick="showSection('list')">전체목록</button>
+    <button onclick="showSection('add')">코드 추가</button>
+    <button onclick="showSection('io')">내보내기/가져오기</button>
+    <button onclick="logout()">로그아웃</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <!-- leaf deco -->
+  <svg class="leaf-deco" style="left:-10px;top:10px;width:90px" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 110 Q10 60 50 20 Q80 50 60 100 Q40 115 20 110Z" fill="#5a9e3c"/>
+    <path d="M20 110 Q40 70 50 20" stroke="#3e7a28" stroke-width="1.5" fill="none"/>
+    <path d="M35 80 Q50 65 50 20" stroke="#3e7a28" stroke-width="1" fill="none" opacity=".5"/>
+  </svg>
+  <svg class="leaf-deco" style="right:20px;top:5px;width:70px;transform:scaleX(-1)" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 110 Q10 60 50 20 Q80 50 60 100 Q40 115 20 110Z" fill="#7aba5a"/>
+    <path d="M20 110 Q40 70 50 20" stroke="#5a9e3c" stroke-width="1.5" fill="none"/>
+  </svg>
+
+  <h1>제품 코드를 빠르게 찾는 방법</h1>
+  <p>일룸 — 코드명, 품명 일부, 공정코드로 즉시 검색</p>
+
+  <div class="search-bar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="searchInput" placeholder="코드 또는 품명 입력  (품목코드, 품명 일부, 공정코드)" autocomplete="off" spellcheck="false" oninput="handleSearch(this.value)">
+    <button class="search-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <form class="login-card" onsubmit="doLogin(event)">
+    <h3>제품코드 관리</h3>
+    <p>접근 비밀번호를 입력하세요</p>
+    <input id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호">
+    <button class="btn btn-primary" type="submit">확인</button>
+    <div id="loginMsg"></div>
+  </form>
+</div>
+
+<!-- SEARCH RESULTS -->
+<div id="resultPanel">
+  <p class="result-meta" id="resultMeta"></p>
+  <div class="result-list" id="resultList"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main-content">
+
+  <div class="section-tabs">
+    <button class="tab-btn active" onclick="switchTab('list',this)">전체 목록</button>
+    <button class="tab-btn" onclick="switchTab('add',this)">코드 추가</button>
+    <button class="tab-btn" onclick="switchTab('io',this)">내보내기 / 가져오기</button>
+  </div>
+
+  <!-- LIST PANEL -->
+  <div id="panel-list" class="panel show">
+    <div class="table-card">
+      <div class="table-header">
+        <h3>전체 코드 목록</h3>
+        <span class="total-badge" id="totalBadge">0개</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:170px">품목코드</th>
+              <th style="width:90px">공정코드</th>
+              <th>단품명칭</th>
+              <th style="width:110px">비고</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody id="allBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD PANEL -->
+  <div id="panel-add" class="panel">
+    <div class="form-card">
+      <h3>새 코드 추가</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>품목코드 *</label>
+          <input id="fCode" placeholder="품목코드" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label>공정코드</label>
+          <input id="fProc" placeholder="공정코드">
+        </div>
+        <div class="form-group">
+          <label>단품명칭 *</label>
+          <input id="fName" placeholder="단품명칭">
+        </div>
+        <div class="form-group">
+          <label>비고</label>
+          <input id="fNote" placeholder="선택사항">
+        </div>
+        <div class="form-group" style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="addItem()">추가</button>
+          <button class="btn btn-ghost" onclick="clearForm()">초기화</button>
+        </div>
+      </div>
+      <div id="addToast" class="toast"></div>
+    </div>
+  </div>
+
+  <!-- IO PANEL -->
+  <div id="panel-io" class="panel">
+    <div class="io-grid">
+      <div class="io-card">
+        <h3>내보내기</h3>
+        <textarea id="exportBox" readonly placeholder="[JSON 내보내기] 버튼을 누르면 여기에 데이터가 표시됩니다"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="exportData()">JSON 내보내기</button>
+          <button class="btn btn-ghost" onclick="copyExport()">클립보드 복사</button>
+        </div>
+        <div id="exportToast" class="toast"></div>
+      </div>
+      <div class="io-card">
+        <h3>가져오기</h3>
+        <textarea id="importBox" placeholder="이 칸에 JSON 데이터를 붙여넣고 [가져오기] 버튼을 누르세요"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="importData()">가져오기 (현재 데이터 교체)</button>
+        </div>
+        <div id="importToast" class="toast"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-col">
+      <h4>사용 안내</h4>
+      <a href="#">검색 방법</a>
+      <a href="#">코드 추가 방법</a>
+      <a href="#">데이터 백업</a>
+    </div>
+    <div class="footer-col">
+      <h4>코드 규칙</h4>
+      <a href="#">Prefix 분류표</a>
+      <a href="#">사이즈 코드</a>
+      <a href="#">라인코드 (HV/AC/AB)</a>
+    </div>
+    <div class="footer-col">
+      <h4>팀 정보</h4>
+      <p>일룸</p>
+      <p>생산관리</p>
+      <p>안성 공장</p>
+    </div>
+    <div class="footer-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#5a9e3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2C6 2 3 8 5 14c1.5 4 5 6 7 6s5.5-2 7-6c2-6-1-12-7-12z"/>
+        <path d="M12 8v8M9 11l3-3 3 3"/>
+      </svg>
+      <p>제품코드를 빠르고<br>정확하게 파악하기 위해<br>만들어진 도구입니다.</p>
+    </div>
+  </div>
+  <p class="footer-copy">© 2026 일룸. 내부 전용 도구.</p>
+</footer>
+
+<script>
+const TOKEN_KEY = 'iloom_prodCode_token';
+let db = [];   // [code, proc, name, note, id] — 서버(D1)에서만 불러옴
+
+function getToken() { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch(e) { return ''; } }
+function setToken(t) { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch(e) {} }
+
+async function api(method, path, body) {
+  const res = await fetch('/api' + path, {
+    method,
+    headers: { 'Authorization': 'Bearer ' + getToken(), ...(body !== undefined ? {'Content-Type':'application/json'} : {}) },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { setToken(''); showLogin('비밀번호가 올바르지 않거나 만료되었습니다'); throw new Error('인증 필요'); }
+  if (!res.ok) throw new Error(data.error || ('서버 오류 ' + res.status));
+  return data;
+}
+
+async function loadDB() {
+  const rows = await api('GET', '/codes');
+  db = rows.map(r => [r.code, r.proc, r.name, r.note, r.id]);
+}
+
+function showLogin(msg) {
+  document.getElementById('loginOverlay').classList.add('show');
+  document.getElementById('loginMsg').textContent = msg || '';
+  setTimeout(() => document.getElementById('loginPw').focus(), 0);
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const pw = document.getElementById('loginPw').value;
+  if (!pw) return;
+  setToken(pw);
+  try {
+    await loadDB();
+    document.getElementById('loginOverlay').classList.remove('show');
+    document.getElementById('loginPw').value = '';
+    renderAll();
+  } catch(err) { if (err.message !== '인증 필요') showLogin(err.message); }
+}
+
+function logout() { setToken(''); db = []; renderAll(); handleSearch(''); showLogin(); }
+
+function norm(s) { return s.toUpperCase().replace(/\s/g,''); }
+
+function handleSearch(v) {
+  const panel = document.getElementById('resultPanel');
+  const list  = document.getElementById('resultList');
+  const meta  = document.getElementById('resultMeta');
+  v = v.trim();
+  if (!v) { panel.classList.remove('show'); return; }
+  const q = norm(v);
+  const hits = db.filter(r =>
+    norm(r[0]).includes(q) ||
+    r[2].replace(/\s/g,'').includes(v.replace(/\s/g,'')) ||
+    r[1].toUpperCase().includes(q) ||
+    (r[3] && r[3].includes(v))
+  );
+  panel.classList.add('show');
+  meta.textContent = hits.length ? `검색 결과 ${hits.length}건` : '검색 결과 없음';
+  if (!hits.length) { list.innerHTML = '<div style="padding:14px 16px;font-size:12px;color:#aab8a0">일치하는 코드가 없습니다</div>'; return; }
+  list.innerHTML = hits.slice(0,40).map(r =>
+    `<div class="result-row">
+      <span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>
+      <span class="r-proc">${escapeAttr(r[1])}</span>
+      <span class="r-name copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>
+      ${r[3] ? `<span class="r-note">${escapeAttr(r[3])}</span>` : '<span></span>'}
+    </div>`
+  ).join('') + (hits.length > 40 ? `<div style="padding:10px 16px;font-size:11px;color:#aab8a0">... 외 ${hits.length-40}건 더 있음</div>` : '');
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyText(text, el) {
+  const done = () => {
+    el.classList.add('copied');
+    const prevTitle = el.title;
+    el.title = '복사됨!';
+    setTimeout(() => { el.classList.remove('copied'); el.title = prevTitle; }, 700);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopyText(text, done));
+  } else {
+    fallbackCopyText(text, done);
+  }
+}
+
+function fallbackCopyText(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  cb();
+}
+
+document.getElementById('resultList').addEventListener('click', e => {
+  const target = e.target.closest('.copyable');
+  if (target) copyText(target.dataset.copy, target);
+});
+
+function renderAll() {
+  const tbody = document.getElementById('allBody');
+  document.getElementById('totalBadge').textContent = `${db.length}개`;
+  tbody.innerHTML = db.map((r,i) =>
+    `<tr>
+      <td class="td-code">${escapeAttr(r[0])}</td>
+      <td><span class="td-proc">${escapeAttr(r[1])}</span></td>
+      <td>${escapeAttr(r[2])}</td>
+      <td>${r[3] ? `<span class="td-note">${escapeAttr(r[3])}</span>` : ''}</td>
+      <td><button class="btn btn-danger" onclick="deleteItem(${i})">삭제</button></td>
+    </tr>`
+  ).join('');
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('show');
+  btn.classList.add('active');
+
+  const navLabels = {list:'전체목록', add:'코드 추가', io:'내보내기/가져오기'};
+  document.querySelectorAll('.nav-links button').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === navLabels[name]);
+  });
+}
+
+function showSection(name) {
+  const tabMap = {search:'list', list:'list', add:'add', io:'io'};
+  const target = tabMap[name] || name;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+  document.getElementById('panel-' + target).classList.add('show');
+
+  const tabLabels = {list:'전체 목록', add:'코드 추가', io:'내보내기 / 가져오기'};
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === tabLabels[target]);
+  });
+
+  const navLabels = {list:'전체목록', add:'코드 추가', io:'내보내기/가져오기', search:'통합검색'};
+  document.querySelectorAll('.nav-links button').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === navLabels[name]);
+  });
+
+  if (name === 'search') document.getElementById('searchInput').focus();
+}
+
+async function addItem() {
+  const code = document.getElementById('fCode').value.trim().toUpperCase();
+  const proc = document.getElementById('fProc').value.trim().toUpperCase();
+  const name = document.getElementById('fName').value.trim();
+  const note = document.getElementById('fNote').value.trim();
+  const toast = document.getElementById('addToast');
+  if (!code || !name) { showToast(toast, '품목코드와 단품명칭은 필수입니다', 'err'); return; }
+  let r;
+  try { r = await api('POST', '/codes', {code, proc, name, note}); }
+  catch(e) { if (e.message !== '인증 필요') showToast(toast, '저장 실패: ' + e.message, 'err'); return; }
+  db.push([r.code, r.proc, r.name, r.note, r.id]);
+  renderAll(); clearForm();
+  showToast(toast, `${code} 추가 완료 (총 ${db.length}개)`, 'ok');
+  const si = document.getElementById('searchInput');
+  if (si.value) handleSearch(si.value);
+}
+
+function clearForm() {
+  ['fCode','fProc','fName','fNote'].forEach(id => document.getElementById(id).value='');
+}
+
+async function deleteItem(i) {
+  if (!confirm(`"${db[i][0]}" 을(를) 삭제하시겠습니까?`)) return;
+  try { await api('DELETE', '/codes/' + db[i][4]); }
+  catch(e) { if (e.message !== '인증 필요') alert('삭제 실패: ' + e.message); return; }
+  db.splice(i,1); renderAll();
+  const si = document.getElementById('searchInput');
+  if (si.value) handleSearch(si.value);
+}
+
+function exportData() {
+  document.getElementById('exportBox').value = JSON.stringify(db.map(r => r.slice(0,4)), null, 2);
+  showToast(document.getElementById('exportToast'), '내보내기 완료 — 복사해서 보관하세요', 'ok');
+}
+
+function copyExport() {
+  const box = document.getElementById('exportBox');
+  if (!box.value) exportData();
+  navigator.clipboard.writeText(box.value)
+    .then(() => showToast(document.getElementById('exportToast'), '클립보드에 복사됐습니다', 'ok'))
+    .catch(() => { box.select(); document.execCommand('copy'); showToast(document.getElementById('exportToast'), '복사됐습니다', 'ok'); });
+}
+
+async function importData() {
+  const raw = document.getElementById('importBox').value.trim();
+  const toast = document.getElementById('importToast');
+  if (!raw) { showToast(toast, '가져올 JSON 데이터가 없습니다', 'err'); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('배열 형식이어야 합니다');
+    if (!confirm(`${parsed.length}개 항목으로 교체하시겠습니까? 현재 데이터가 덮어씌워집니다.`)) return;
+    await api('PUT', '/codes', parsed);
+    await loadDB(); renderAll();
+    showToast(toast, `${db.length}개 항목 가져오기 완료`, 'ok');
+  } catch(e) { if (e.message !== '인증 필요') showToast(toast, '가져오기 실패: ' + e.message, 'err'); }
+}
+
+function showToast(el, msg, type) {
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  setTimeout(() => el.className = 'toast', 3000);
+}
+
+renderAll();
+if (getToken()) loadDB().then(renderAll).catch(e => { if (e.message !== '인증 필요') showLogin(e.message); });
+else showLogin();
+</script>
+</body>
+</html>
