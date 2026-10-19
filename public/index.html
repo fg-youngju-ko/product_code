@@ -531,15 +531,6 @@ footer {
 }
 .hero { position: relative; }
 
-/* ── LOGIN ── */
-#loginOverlay { display:none; position:fixed; inset:0; z-index:1000; background:rgba(240,244,236,.96); align-items:center; justify-content:center; padding:16px; }
-#loginOverlay.show { display:flex; }
-.login-card { background:var(--white); border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:28px; width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px; }
-.login-card h3 { color:var(--green-700); font-size:18px; }
-.login-card p { font-size:13px; color:var(--soil); }
-.login-card input { padding:10px 12px; border:1px solid var(--fog); border-radius:var(--r-sm); font-size:14px; font-family:inherit; }
-.login-card input:focus { outline:2px solid var(--green-400); border-color:transparent; }
-#loginMsg { font-size:12px; color:#a33; min-height:16px; }
 </style>
 </head>
 <body>
@@ -558,7 +549,6 @@ footer {
     <button onclick="showSection('list')">전체목록</button>
     <button onclick="showSection('add')">코드 추가</button>
     <button onclick="showSection('io')">내보내기/가져오기</button>
-    <button onclick="logout()">로그아웃</button>
   </div>
 </nav>
 
@@ -585,17 +575,6 @@ footer {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     </button>
   </div>
-</div>
-
-<!-- LOGIN -->
-<div id="loginOverlay">
-  <form class="login-card" onsubmit="doLogin(event)">
-    <h3>제품코드 관리</h3>
-    <p>접근 비밀번호를 입력하세요</p>
-    <input id="loginPw" type="password" autocomplete="current-password" placeholder="비밀번호">
-    <button class="btn btn-primary" type="submit">확인</button>
-    <div id="loginMsg"></div>
-  </form>
 </div>
 
 <!-- SEARCH RESULTS -->
@@ -725,20 +704,15 @@ footer {
 </footer>
 
 <script>
-const TOKEN_KEY = 'iloom_prodCode_token';
 let db = [];   // [code, proc, name, note, id] — 서버(D1)에서만 불러옴
-
-function getToken() { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch(e) { return ''; } }
-function setToken(t) { try { t ? sessionStorage.setItem(TOKEN_KEY, t) : sessionStorage.removeItem(TOKEN_KEY); } catch(e) {} }
 
 async function api(method, path, body) {
   const res = await fetch('/api' + path, {
     method,
-    headers: { 'Authorization': 'Bearer ' + getToken(), ...(body !== undefined ? {'Content-Type':'application/json'} : {}) },
+    headers: body !== undefined ? {'Content-Type':'application/json'} : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401) { setToken(''); showLogin('비밀번호가 올바르지 않거나 만료되었습니다'); throw new Error('인증 필요'); }
   if (!res.ok) throw new Error(data.error || ('서버 오류 ' + res.status));
   return data;
 }
@@ -747,27 +721,6 @@ async function loadDB() {
   const rows = await api('GET', '/codes');
   db = rows.map(r => [r.code, r.proc, r.name, r.note, r.id]);
 }
-
-function showLogin(msg) {
-  document.getElementById('loginOverlay').classList.add('show');
-  document.getElementById('loginMsg').textContent = msg || '';
-  setTimeout(() => document.getElementById('loginPw').focus(), 0);
-}
-
-async function doLogin(e) {
-  e.preventDefault();
-  const pw = document.getElementById('loginPw').value;
-  if (!pw) return;
-  setToken(pw);
-  try {
-    await loadDB();
-    document.getElementById('loginOverlay').classList.remove('show');
-    document.getElementById('loginPw').value = '';
-    renderAll();
-  } catch(err) { if (err.message !== '인증 필요') showLogin(err.message); }
-}
-
-function logout() { setToken(''); db = []; renderAll(); handleSearch(''); showLogin(); }
 
 function norm(s) { return s.toUpperCase().replace(/\s/g,''); }
 
@@ -886,7 +839,7 @@ async function addItem() {
   if (!code || !name) { showToast(toast, '품목코드와 단품명칭은 필수입니다', 'err'); return; }
   let r;
   try { r = await api('POST', '/codes', {code, proc, name, note}); }
-  catch(e) { if (e.message !== '인증 필요') showToast(toast, '저장 실패: ' + e.message, 'err'); return; }
+  catch(e) { showToast(toast, '저장 실패: ' + e.message, 'err'); return; }
   db.push([r.code, r.proc, r.name, r.note, r.id]);
   renderAll(); clearForm();
   showToast(toast, `${code} 추가 완료 (총 ${db.length}개)`, 'ok');
@@ -901,7 +854,7 @@ function clearForm() {
 async function deleteItem(i) {
   if (!confirm(`"${db[i][0]}" 을(를) 삭제하시겠습니까?`)) return;
   try { await api('DELETE', '/codes/' + db[i][4]); }
-  catch(e) { if (e.message !== '인증 필요') alert('삭제 실패: ' + e.message); return; }
+  catch(e) { alert('삭제 실패: ' + e.message); return; }
   db.splice(i,1); renderAll();
   const si = document.getElementById('searchInput');
   if (si.value) handleSearch(si.value);
@@ -931,7 +884,7 @@ async function importData() {
     await api('PUT', '/codes', parsed);
     await loadDB(); renderAll();
     showToast(toast, `${db.length}개 항목 가져오기 완료`, 'ok');
-  } catch(e) { if (e.message !== '인증 필요') showToast(toast, '가져오기 실패: ' + e.message, 'err'); }
+  } catch(e) { showToast(toast, '가져오기 실패: ' + e.message, 'err'); }
 }
 
 function showToast(el, msg, type) {
@@ -941,8 +894,7 @@ function showToast(el, msg, type) {
 }
 
 renderAll();
-if (getToken()) loadDB().then(renderAll).catch(e => { if (e.message !== '인증 필요') showLogin(e.message); });
-else showLogin();
+loadDB().then(renderAll).catch(e => alert('데이터를 불러오지 못했습니다: ' + e.message));
 </script>
 </body>
 </html>

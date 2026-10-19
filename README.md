@@ -4,13 +4,9 @@
 
 - 사이트: https://product-code.pages.dev
 - 프론트엔드: `public/index.html`
-- API: `functions/api/` (Cloudflare Pages Functions) — 모든 요청에 비밀번호 필요
+- API: `functions/api/` (Cloudflare Pages Functions)
 - DB 스키마: `schema.sql`
 
-## 비밀번호 변경
-```
-npx wrangler pages secret put APP_PASSWORD --project-name=product-code
-```
 
 ## 배포
 ```
