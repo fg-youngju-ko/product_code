@@ -100,6 +100,7 @@ nav {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 60px;
+  pointer-events: none;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 60'%3E%3Cellipse cx='200' cy='80' rx='300' ry='70' fill='%23e6f2de' opacity='.5'/%3E%3Cellipse cx='700' cy='85' rx='500' ry='65' fill='%23c9e4b8' opacity='.3'/%3E%3Cellipse cx='1100' cy='80' rx='250' ry='60' fill='%23e6f2de' opacity='.5'/%3E%3C/svg%3E") bottom/cover no-repeat;
 }
 .hero h1 {
@@ -115,6 +116,9 @@ nav {
   margin-bottom: 24px;
 }
 .search-bar {
+  position: relative;
+  z-index: 1;
+  cursor: text;
   display: flex;
   align-items: center;
   background: var(--white);
@@ -195,6 +199,8 @@ nav {
 .r-name { font-size: 13px; color: var(--bark); }
 .copyable { cursor: pointer; border-radius: 4px; padding: 1px 3px; margin: -1px -3px; transition: background .15s, color .15s; }
 .copyable:hover { background: var(--green-100); }
+.r-proc.copyable { padding: 2px 8px; margin: 0; border-radius: 99px; }
+.td-proc.copyable { padding: 2px 7px; margin: 0; border-radius: 99px; }
 .copyable.copied { background: var(--green-400) !important; color: #fff !important; }
 .r-note { font-size: 11px; color: var(--green-500); background: var(--green-50); border: 1px solid var(--green-200); padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
 
@@ -568,7 +574,7 @@ footer {
   <h1>제품 코드를 빠르게 찾는 방법</h1>
   <p>일룸 — 코드명, 품명 일부, 공정코드로 즉시 검색</p>
 
-  <div class="search-bar">
+  <div class="search-bar" onclick="document.getElementById('searchInput').focus()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input id="searchInput" placeholder="코드 또는 품명 입력  (품목코드, 품명 일부, 공정코드)" autocomplete="off" spellcheck="false" oninput="handleSearch(this.value)">
     <button class="search-btn">
@@ -743,7 +749,7 @@ function handleSearch(v) {
   list.innerHTML = hits.slice(0,40).map(r =>
     `<div class="result-row">
       <span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>
-      <span class="r-proc">${escapeAttr(r[1])}</span>
+      ${r[1] ? `<span class="r-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : '<span></span>'}
       <span class="r-name copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>
       ${r[3] ? `<span class="r-note">${escapeAttr(r[3])}</span>` : '<span></span>'}
     </div>`
@@ -780,19 +786,19 @@ function fallbackCopyText(text, cb) {
   cb();
 }
 
-document.getElementById('resultList').addEventListener('click', e => {
+['resultList', 'allBody'].forEach(id => document.getElementById(id).addEventListener('click', e => {
   const target = e.target.closest('.copyable');
   if (target) copyText(target.dataset.copy, target);
-});
+}));
 
 function renderAll() {
   const tbody = document.getElementById('allBody');
   document.getElementById('totalBadge').textContent = `${db.length}개`;
   tbody.innerHTML = db.map((r,i) =>
     `<tr>
-      <td class="td-code">${escapeAttr(r[0])}</td>
-      <td><span class="td-proc">${escapeAttr(r[1])}</span></td>
-      <td>${escapeAttr(r[2])}</td>
+      <td class="td-code"><span class="copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span></td>
+      <td>${r[1] ? `<span class="td-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : ''}</td>
+      <td><span class="copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span></td>
       <td>${r[3] ? `<span class="td-note">${escapeAttr(r[3])}</span>` : ''}</td>
       <td><button class="btn btn-danger" onclick="deleteItem(${i})">삭제</button></td>
     </tr>`
