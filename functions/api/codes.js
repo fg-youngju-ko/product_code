@@ -1,4 +1,5 @@
 import { json } from "../../lib/http.js";
+import { ensurePhotos } from "../../lib/schema.js";
 
 const clean = (v, max = 200) => String(v ?? '').trim().slice(0, max);
 
@@ -16,8 +17,9 @@ function toRow(r) {
 
 // GET /api/codes — 전체 목록
 export async function onRequestGet({ env }) {
+  await ensurePhotos(env);
   const { results } = await env.DB
-    .prepare('SELECT id, code, proc, name, note FROM codes ORDER BY code, id')
+    .prepare('SELECT c.id, c.code, c.proc, c.name, c.note, p.updated_at AS photo_v FROM codes c LEFT JOIN photos p ON p.code_id = c.id ORDER BY c.code, c.id')
     .all();
   return json(results);
 }
@@ -38,11 +40,13 @@ export async function onRequestPut({ request, env }) {
   const body = await request.json().catch(() => null);
   if (!Array.isArray(body)) return json({ error: '배열 형식이어야 합니다' }, 400);
   if (body.length > 20000) return json({ error: '항목이 너무 많습니다' }, 400);
+  await ensurePhotos(env);
   const rows = body.map(toRow).filter(r => r.code && r.name);
   const ins = env.DB.prepare('INSERT INTO codes (code, proc, name, note) VALUES (?, ?, ?, ?)');
   await env.DB.batch([
     env.DB.prepare('DELETE FROM codes'),
     ...rows.map(r => ins.bind(r.code, r.proc, r.name, r.note)),
+    env.DB.prepare('DELETE FROM photos WHERE code_id NOT IN (SELECT id FROM codes)'),
   ]);
   return json({ count: rows.length });
 }

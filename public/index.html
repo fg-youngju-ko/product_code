@@ -185,7 +185,7 @@ nav {
 }
 .result-row {
   display: grid;
-  grid-template-columns: 160px 72px 1fr auto;
+  grid-template-columns: 240px 72px 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
@@ -537,6 +537,24 @@ footer {
 }
 .hero { position: relative; }
 
+
+/* ── PHOTO ── */
+.code-cell { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.code-cell > .copyable:first-child { min-width: 108px; }
+.photo-btn { font-family: inherit; font-size: 11px; padding: 2px 9px; border-radius: 99px; border: 1px dashed var(--green-200); background: var(--white); color: var(--soil); cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
+.photo-btn:hover { border-color: var(--green-400); background: var(--green-50); }
+.photo-btn.has { border-style: solid; border-color: var(--green-400); background: var(--green-100); color: var(--green-700); }
+.photo-btn.has:hover { background: var(--green-200); }
+#photoPreview { display: none; position: fixed; z-index: 900; pointer-events: none; background: var(--white); border: 1px solid var(--fog); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 6px; }
+#photoPreview.show { display: block; }
+#photoPreview img { display: block; max-width: 260px; max-height: 260px; border-radius: var(--r-sm); }
+#photoPreview span { display: block; padding: 8px 12px; font-size: 12px; color: var(--soil); white-space: nowrap; }
+#photoModal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(20,30,15,.75); align-items: center; justify-content: center; padding: 16px; }
+#photoModal.show { display: flex; }
+.photo-modal-box { background: var(--white); border-radius: var(--r-lg); padding: 12px; max-width: min(1100px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 10px; }
+#photoModalImg { display: block; max-width: 100%; max-height: calc(100vh - 120px); object-fit: contain; border-radius: var(--r-md); margin: 0 auto; }
+.photo-modal-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#photoModalCaption { font-size: 13px; color: var(--bark); }
 </style>
 </head>
 <body>
@@ -609,7 +627,7 @@ footer {
         <table>
           <thead>
             <tr>
-              <th style="width:170px">품목코드</th>
+              <th style="width:250px">품목코드</th>
               <th style="width:90px">공정코드</th>
               <th>단품명칭</th>
               <th style="width:110px">비고</th>
@@ -677,6 +695,23 @@ footer {
 
 </div>
 
+<!-- PHOTO -->
+<input type="file" id="photoInput" accept="image/*" hidden onchange="uploadPhoto(this.files[0])">
+<div id="photoPreview"></div>
+<div id="photoModal" onclick="if (event.target === this) closePhoto()">
+  <div class="photo-modal-box">
+    <img id="photoModalImg" alt="">
+    <div class="photo-modal-bar">
+      <span id="photoModalCaption"></span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="pickPhoto(photoTargetId)">사진 변경</button>
+        <button class="btn btn-danger" onclick="deletePhoto()">삭제</button>
+        <button class="btn btn-primary" onclick="closePhoto()">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
@@ -725,7 +760,7 @@ async function api(method, path, body) {
 
 async function loadDB() {
   const rows = await api('GET', '/codes');
-  db = rows.map(r => [r.code, r.proc, r.name, r.note, r.id]);
+  db = rows.map(r => [r.code, r.proc, r.name, r.note, r.id, r.photo_v || null]);
 }
 
 function norm(s) { return s.toUpperCase().replace(/\s/g,''); }
@@ -748,13 +783,128 @@ function handleSearch(v) {
   if (!hits.length) { list.innerHTML = '<div style="padding:14px 16px;font-size:12px;color:#aab8a0">일치하는 코드가 없습니다</div>'; return; }
   list.innerHTML = hits.slice(0,40).map(r =>
     `<div class="result-row">
-      <span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>
+      <span class="code-cell"><span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>${photoBtn(r)}</span>
       ${r[1] ? `<span class="r-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : '<span></span>'}
       <span class="r-name copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>
       ${r[3] ? `<span class="r-note">${escapeAttr(r[3])}</span>` : '<span></span>'}
     </div>`
   ).join('') + (hits.length > 40 ? `<div style="padding:10px 16px;font-size:11px;color:#aab8a0">... 외 ${hits.length-40}건 더 있음</div>` : '');
 }
+
+// ── 사진 ──
+const PHOTO_MAX = 1600;  // 업로드 전 긴 변 기준 축소(px)
+let photoTargetId = null;
+
+function photoUrl(r) { return '/api/photos/' + r[4] + '?v=' + encodeURIComponent(r[5]); }
+function findRow(id) { return db.find(r => r[4] === id); }
+
+function photoBtn(r) {
+  return r[5]
+    ? `<button class="photo-btn has" data-photo="view" data-id="${r[4]}">사진 보기</button>`
+    : `<button class="photo-btn" data-photo="add" data-id="${r[4]}">사진 등록</button>`;
+}
+
+function refreshViews() {
+  renderAll();
+  const si = document.getElementById('searchInput');
+  if (si.value) handleSearch(si.value);
+}
+
+function pickPhoto(id) {
+  photoTargetId = id;
+  const input = document.getElementById('photoInput');
+  input.value = '';
+  input.click();
+}
+
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, PHOTO_MAX / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없습니다')); };
+    img.src = url;
+  });
+}
+
+async function uploadPhoto(file) {
+  const id = photoTargetId;
+  const r = findRow(id);
+  if (!file || !r) return;
+  try {
+    const data = await shrinkImage(file);
+    const res = await api('PUT', '/photos/' + id, { data });
+    r[5] = res.photo_v;
+    refreshViews();
+    if (document.getElementById('photoModal').classList.contains('show')) openPhoto(id);
+  } catch(e) { alert('사진 등록 실패: ' + e.message); }
+}
+
+function openPhoto(id) {
+  const r = findRow(id);
+  if (!r || !r[5]) return;
+  hidePreview();
+  photoTargetId = id;
+  document.getElementById('photoModalImg').src = photoUrl(r);
+  document.getElementById('photoModalCaption').textContent = r[0] + '  ' + r[2];
+  document.getElementById('photoModal').classList.add('show');
+}
+
+function closePhoto() {
+  document.getElementById('photoModal').classList.remove('show');
+  document.getElementById('photoModalImg').removeAttribute('src');
+}
+
+async function deletePhoto() {
+  const r = findRow(photoTargetId);
+  if (!r || !confirm(`"${r[0]}" 사진을 삭제하시겠습니까?`)) return;
+  try { await api('DELETE', '/photos/' + r[4]); }
+  catch(e) { alert('삭제 실패: ' + e.message); return; }
+  r[5] = null;
+  closePhoto();
+  refreshViews();
+}
+
+function showPreview(btn) {
+  const r = findRow(Number(btn.dataset.id));
+  if (!r) return;
+  const box = document.getElementById('photoPreview');
+  box.innerHTML = r[5]
+    ? `<img src="${photoUrl(r)}" alt="">`
+    : '<span>사진을 등록해주세요</span>';
+  box.classList.add('show');
+  const b = btn.getBoundingClientRect();
+  const w = r[5] ? 272 : box.offsetWidth, h = r[5] ? 272 : box.offsetHeight;
+  let left = b.right + 10, top = b.top + b.height / 2 - h / 2;
+  if (left + w > innerWidth - 8) left = Math.max(8, b.left - w - 10);
+  top = Math.max(8, Math.min(top, innerHeight - h - 8));
+  box.style.left = left + 'px';
+  box.style.top = top + 'px';
+}
+
+function hidePreview() { document.getElementById('photoPreview').classList.remove('show'); }
+
+['resultList', 'allBody'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('click', e => {
+    const btn = e.target.closest('.photo-btn');
+    if (!btn) return;
+    const rid = Number(btn.dataset.id);
+    btn.dataset.photo === 'view' ? openPhoto(rid) : pickPhoto(rid);
+  });
+  el.addEventListener('mouseover', e => { const btn = e.target.closest('.photo-btn'); if (btn) showPreview(btn); });
+  el.addEventListener('mouseout', e => { if (e.target.closest('.photo-btn')) hidePreview(); });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePhoto(); });
+window.addEventListener('scroll', hidePreview, true);
 
 function escapeAttr(s) {
   return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -796,7 +946,7 @@ function renderAll() {
   document.getElementById('totalBadge').textContent = `${db.length}개`;
   tbody.innerHTML = db.map((r,i) =>
     `<tr>
-      <td class="td-code"><span class="copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span></td>
+      <td class="td-code"><span class="code-cell"><span class="copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>${photoBtn(r)}</span></td>
       <td>${r[1] ? `<span class="td-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : ''}</td>
       <td><span class="copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span></td>
       <td>${r[3] ? `<span class="td-note">${escapeAttr(r[3])}</span>` : ''}</td>
@@ -846,7 +996,7 @@ async function addItem() {
   let r;
   try { r = await api('POST', '/codes', {code, proc, name, note}); }
   catch(e) { showToast(toast, '저장 실패: ' + e.message, 'err'); return; }
-  db.push([r.code, r.proc, r.name, r.note, r.id]);
+  db.push([r.code, r.proc, r.name, r.note, r.id, null]);
   renderAll(); clearForm();
   showToast(toast, `${code} 추가 완료 (총 ${db.length}개)`, 'ok');
   const si = document.getElementById('searchInput');
