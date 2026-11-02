@@ -185,7 +185,7 @@ nav {
 }
 .result-row {
   display: grid;
-  grid-template-columns: 240px 72px 1fr auto;
+  grid-template-columns: 160px 72px 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
@@ -539,8 +539,7 @@ footer {
 
 
 /* ── PHOTO ── */
-.code-cell { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.code-cell > .copyable:first-child { min-width: 108px; }
+.name-cell { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .photo-btn { font-family: inherit; font-size: 11px; padding: 2px 9px; border-radius: 99px; border: 1px dashed var(--green-200); background: var(--white); color: var(--soil); cursor: pointer; white-space: nowrap; transition: background .15s, border-color .15s; }
 .photo-btn:hover { border-color: var(--green-400); background: var(--green-50); }
 .photo-btn.has { border-style: solid; border-color: var(--green-400); background: var(--green-100); color: var(--green-700); }
@@ -627,7 +626,7 @@ footer {
         <table>
           <thead>
             <tr>
-              <th style="width:250px">품목코드</th>
+              <th style="width:170px">품목코드</th>
               <th style="width:90px">공정코드</th>
               <th>단품명칭</th>
               <th style="width:110px">비고</th>
@@ -783,9 +782,9 @@ function handleSearch(v) {
   if (!hits.length) { list.innerHTML = '<div style="padding:14px 16px;font-size:12px;color:#aab8a0">일치하는 코드가 없습니다</div>'; return; }
   list.innerHTML = hits.slice(0,40).map(r =>
     `<div class="result-row">
-      <span class="code-cell"><span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>${photoBtn(r)}</span>
+      <span class="r-code copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>
       ${r[1] ? `<span class="r-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : '<span></span>'}
-      <span class="r-name copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>
+      <span class="name-cell"><span class="r-name copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>${photoBtn(r)}</span>
       ${r[3] ? `<span class="r-note">${escapeAttr(r[3])}</span>` : '<span></span>'}
     </div>`
   ).join('') + (hits.length > 40 ? `<div style="padding:10px 16px;font-size:11px;color:#aab8a0">... 외 ${hits.length-40}건 더 있음</div>` : '');
@@ -946,9 +945,9 @@ function renderAll() {
   document.getElementById('totalBadge').textContent = `${db.length}개`;
   tbody.innerHTML = db.map((r,i) =>
     `<tr>
-      <td class="td-code"><span class="code-cell"><span class="copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span>${photoBtn(r)}</span></td>
+      <td class="td-code"><span class="copyable" data-copy="${escapeAttr(r[0])}" title="클릭하여 복사">${escapeAttr(r[0])}</span></td>
       <td>${r[1] ? `<span class="td-proc copyable" data-copy="${escapeAttr(r[1])}" title="클릭하여 복사">${escapeAttr(r[1])}</span>` : ''}</td>
-      <td><span class="copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span></td>
+      <td><span class="name-cell"><span class="copyable" data-copy="${escapeAttr(r[2])}" title="클릭하여 복사">${escapeAttr(r[2])}</span>${photoBtn(r)}</span></td>
       <td>${r[3] ? `<span class="td-note">${escapeAttr(r[3])}</span>` : ''}</td>
       <td><button class="btn btn-danger" onclick="deleteItem(${i})">삭제</button></td>
     </tr>`
